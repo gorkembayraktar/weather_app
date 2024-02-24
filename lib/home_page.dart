@@ -20,6 +20,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   String location = 'Bursa';
+  String code = 'Clear';
   double? temperature;
 
 
@@ -33,6 +34,9 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       temperature = locationDataParsed['main']['temp'];
       location = locationDataParsed['name'];
+
+      code = locationDataParsed['weather'].first['main'];
+
     });
   }
 
@@ -46,9 +50,9 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         image: DecorationImage(
-            image: AssetImage('assets/Clear.jpg'), fit: BoxFit.cover),
+            image: AssetImage('assets/$code.jpg'), fit: BoxFit.cover),
       ),
       child: (temperature == null)
           ? const Scaffold(
