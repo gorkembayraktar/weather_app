@@ -3,7 +3,9 @@ import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart';
+import 'package:flutter/widgets.dart';
 import 'package:havadurumu/search_page.dart';
+import 'package:havadurumu/widgets/daily_weather_card.dart';
 import 'package:http/http.dart' as http;
 import 'package:loading_indicator/loading_indicator.dart';
 import 'package:geolocator/geolocator.dart';
@@ -24,6 +26,7 @@ class _MyHomePageState extends State<MyHomePage> {
   String code = 'Clear';
   double? temperature;
   String icon = '';
+  List<CardDailyItem> cardDailyItems = [];
 
 
   var locationData;
@@ -41,6 +44,7 @@ class _MyHomePageState extends State<MyHomePage> {
       code = locationDataParsed['weather'].first['main'];
 
     });
+    getDailyForecastByLocation();
   }
 
   Future<void> getDevicePosition()async{
@@ -52,6 +56,11 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> getLocationDataFromApiByLocation() async{
     if(position != null){
+      setState(() {
+        temperature = null;
+      });
+
+
       locationData = await http.get(Uri.parse(
           'https://api.openweathermap.org/data/2.5/weather?lat=${position!.latitude}&lon=${position!.longitude}&appid=${MyHomePage.APIKEY}&units=metric'));
       final locationDataParsed = jsonDecode(locationData.body);
@@ -63,10 +72,58 @@ class _MyHomePageState extends State<MyHomePage> {
         code = locationDataParsed['weather'].first['main'];
 
       });
+
     }
 
   }
 
+  Future<void> getDailyForecastByLatLon() async{
+    cardDailyItems.clear();
+    var forecast = await http.get(Uri.parse(
+        'https://api.openweathermap.org/data/2.5/forecast?lat=${position!.latitude}&lon=${position!.longitude}&appid=${MyHomePage.APIKEY}&units=metric'));
+    final forecastParsed = jsonDecode(forecast.body);
+
+    print(forecastParsed['list'][39]['main']['temp']);
+    setState(() {
+
+      for(int i = 7; i <= 39; i+=8 ){
+        cardDailyItems.add(
+            CardDailyItem(
+                temperature: forecastParsed['list'][i]['main']['temp'],
+                icon:  forecastParsed['list'][i]['weather'][0]['icon'],
+                date:  forecastParsed['list'][i]['dt_txt']
+            )
+        );
+
+      }
+
+    });
+
+  }
+
+  Future<void> getDailyForecastByLocation() async{
+    cardDailyItems.clear();
+    var forecast = await http.get(Uri.parse(
+        'https://api.openweathermap.org/data/2.5/forecast?q=${location}&appid=${MyHomePage.APIKEY}&units=metric'));
+    final forecastParsed = jsonDecode(forecast.body);
+
+
+    setState(() {
+
+      for(int i = 7; i <= 39; i+=8 ){
+        cardDailyItems.add(
+            CardDailyItem(
+                temperature: forecastParsed['list'][i]['main']['temp'],
+                icon:  forecastParsed['list'][i]['weather'][0]['icon'],
+                date:  forecastParsed['list'][i]['dt_txt']
+            )
+        );
+
+      }
+
+    });
+
+  }
 
   Future<Position> _determinePosition() async {
     bool serviceEnabled;
@@ -108,7 +165,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void loadData() async {
     await getDevicePosition();
-    getLocationDataFromApiByLocation();
+    await getLocationDataFromApiByLocation();
+    await getDailyForecastByLatLon();
   }
 
   @override
@@ -127,7 +185,7 @@ class _MyHomePageState extends State<MyHomePage> {
         image: DecorationImage(
             image: AssetImage('assets/$code.jpg'), fit: BoxFit.cover),
       ),
-      child: (temperature == null)
+      child: (temperature == null || cardDailyItems.isEmpty)
           ? const Scaffold(
               backgroundColor: Colors.transparent,
               body: Center(
@@ -166,9 +224,9 @@ class _MyHomePageState extends State<MyHomePage> {
                   Padding(
                       padding: EdgeInsets.all(10),
                       child: Text(
-                        'Veri getiriliyor..',
+                        'Hava durumu bekleniyor..',
                         style: TextStyle(
-                            fontSize: 33, color: Colors.black, fontWeight: FontWeight.bold),
+                            fontSize: 23, color: Colors.white, fontWeight: FontWeight.bold),
                       ))
                 ],
               )),
@@ -208,12 +266,26 @@ class _MyHomePageState extends State<MyHomePage> {
                             },
                           )
                         ],
+                      ),
+                      SizedBox(
+                        width: MediaQuery.of(context).size.width  * 0.9,
+                        height: 200,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: cardDailyItems.length,
+                          itemBuilder: (BuildContext context, int index) {
+                             return DailyWeatherCard(
+                               cardDailyItem: cardDailyItems[index],
+                             );
+                          },
+                        ),
                       )
                     ]),
               ),
               floatingActionButton: FloatingActionButton(
-                onPressed: (){
-                  getLocationDataFromApiByLocation();
+                onPressed: () async{
+                  await getLocationDataFromApiByLocation();
+                  await getDailyForecastByLocation();
                 },
                 child: Icon(Icons.location_searching),
               ),
@@ -221,3 +293,6 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
+
+
+
