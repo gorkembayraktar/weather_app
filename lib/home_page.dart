@@ -224,7 +224,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   Padding(
                       padding: EdgeInsets.all(10),
                       child: Text(
-                        'Hava durumu bekleniyor..',
+                        'Hava durumu bilgisi bekleniyor..',
                         style: TextStyle(
                             fontSize: 23, color: Colors.white, fontWeight: FontWeight.bold),
                       ))
